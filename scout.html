@@ -1,0 +1,940 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+   <title>4513 Scouting Tool Prototype</title>
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width,initial-scale=1"/>
+   <!--
+   <link type="text/css" rel="stylesheet" href="scout.css" />
+   -->
+   <style>
+#problem {
+    width:99% !important;
+}
+#problem option {
+    width:99% !important;
+}
+buttons{
+    height:70%;
+}
+button, #problem{
+    font-weight: bold;
+    height: 6%;
+    width: 99%;
+    margin: 2% 0.5%;
+}
+#prevMatch,
+#nextMatch {
+    padding: 3px;
+    width: 20px;
+    margin: 1px;
+}
+#reset {
+    width: 15%;
+}
+#start {
+    width: 80%;
+}
+#save {
+    width: 40%;
+    float: right;
+}
+#match {
+    width: 2em;
+    margin:0;
+}
+#team{
+    text-align:right;
+    margin:0;
+}
+#redRankingPoints,
+#blueRankingPoints {
+    width: 10px;
+    border: none;
+    padding: 0;
+    margin: 1px;
+}
+#prevRedRank,
+#nextRedRank,
+#prevBlueRank,
+#nextBlueRank {
+    padding: 0 4px;
+    width: 16px;
+    margin: 0;
+    border: none;
+    fill: none;
+}
+
+#scoreCubeHigh,
+#scoreConeHigh,
+#scoreCubeMed,
+#scoreConeMed,
+#scoreCubeLow,
+#scoreConeLow {
+    height: 4%;
+    width:  25%;
+    margin: 1% 3%;
+}
+#Start {
+    height: 10%;
+}
+#clock {
+    border:none;
+    cursor:default;
+    font-size: 300%;
+    font-weight: bold;
+    height: 40px;
+    text-align: right;
+    width:  100%;
+}
+textarea {
+    resize: none;
+}
+div {
+    margin: 1% 0;
+    width: 100%;
+    overflow: hidden;
+}
+#buttons,
+#scoreRight,
+#endgameRight,
+#motionRight,
+#loadingRight,
+#scoreLeft,
+#endgameLeft,
+#motionLeft,
+#loadingLeft {
+    font-family: Arial,sans-serif;
+    font-size: smaller;
+    font-weight: bolder;
+    text-align: center;
+}
+#buttonsLeft,
+#scoreLeft,
+#endgameLeft,
+#motionLeft,
+#loadingLeft {
+    float: left;
+    width: 49%;
+}
+#buttonsRight,
+#scoreRight,
+#endgameRight,
+#motionRight,
+#loadingRight {
+    float: right;
+    width: 49%;
+    /*margin-left: 200px;*/
+}
+#scoreLeft {
+    width: 46%;
+}
+#scoreRight {
+    width: 54%;
+}
+#commentDiv,
+#matchDiv,
+#timing {
+    font-family: Arial,sans-serif;
+    font-size: smaller;
+    font-weight: bolder;
+}
+#timingLeft {
+    width: 25%;
+    float: left;
+}
+#timingCenter {
+    /*margin-left: 32%;*/
+    float: left;
+    height: 100%;
+    margin:0;
+    width: 30%;
+}
+#timingRight {
+    width: 43%;
+    float: right;
+    margin-left: 2%;
+}
+/*
+.none{
+    cursor: not-allowed;
+    pointer-events: none;
+}
+.auto{
+    cursor: auto;
+    pointer-events: auto;
+}
+.pre{
+    cursor: auto;
+    pointer-events: auto;
+}
+.post{
+    cursor: auto;
+    pointer-events: auto;
+}
+.teleop{
+    cursor: auto;
+    pointer-events: auto;
+}
+*/
+/*
+<div style="width: 100%; overflow: hidden;">
+     <div style="width: 600px; float: left;"> Left </div>
+     <div style="margin-left: 620px;"> Right </div>
+</div>
+*/
+    </style>
+    <!--
+    <link href="https://fonts.googleapis.com/css?family=Poppins|Roboto" rel="stylesheet">
+    -->
+    <script type="text/javascript" src="FileSaver.min.js"></script>
+    <script>
+    const autoTime = 15
+    const teleOpTime = 135
+
+    //periods
+    const PRE        = 0
+    const AUTONOMOUS = 1
+    const TELEOP     = 2
+    const POST       = 3
+    periods = [
+        "Pre",
+        "Auto",
+        "Tele",
+        "Post"
+    ]
+    var period = PRE
+
+    var matchIndex = 0 //index into the matchData structure
+    var timer = 0 //timer really is not running at this time
+    var redRankingPoints = 0
+    var blueRankingPoints = 0
+    const matches = [ //intent is to load this on the fly with AJAX ... poor man could load on day of event somehow,... still need to load playoffs
+        {"match":1,"red":[6350,2990,4513],"blue":[9998,1899,360]},
+        {"match":2,"red":[9999,5937,8051],"blue":[3663,5941,2930]},
+        {"match":3,"red":[5920,7461,2910],"blue":[4682,6390,9994]},
+        {"match":4,"red":[9990,9988,9993],"blue":[9991,9992,2522]},
+        {"match":5,"red":[2557,2412,1778],"blue":[4173,1540,948]},
+        {"match":6,"red":[7627,4512,9994],"blue":[1899,4911,6350]},
+        {"match":7,"red":[3663,2522,9999],"blue":[2910,9998,4682]},
+        {"match":8,"red":[9993,5920,2557],"blue":[5941,5937,9988]},
+        {"match":9,"red":[9990,948,8051],"blue":[1540,9992,360]},
+        {"match":10,"red":[2990,2412,4512],"blue":[1778,7461,4911]},
+        {"match":11,"red":[9991,7627,4173],"blue":[6390,4513,2930]},
+        {"match":12,"red":[2522,360,9990],"blue":[9999,1899,5920]},
+        {"match":13,"red":[3663,7461,4682],"blue":[9988,1540,2990]},
+        {"match":14,"red":[6390,2557,9998],"blue":[7627,9992,2930]},
+        {"match":15,"red":[948,9991,4512],"blue":[6350,2412,9993]},
+        {"match":16,"red":[5937,4911,4173],"blue":[4513,8051,2910]},
+        {"match":17,"red":[9994,5941,9990],"blue":[1778,6390,3663]},
+        {"match":18,"red":[1540,9998,9991],"blue":[360,9999,7627]},
+        {"match":19,"red":[5920,6350,9992],"blue":[9993,2930,5937]},
+        {"match":20,"red":[1778,1899,2910],"blue":[9988,4512,7461]},
+        {"match":21,"red":[8051,9994,2990],"blue":[2522,948,4513]},
+        {"match":22,"red":[2557,4173,5941],"blue":[4911,2412,4682]},
+        {"match":23,"red":[9998,1778,5937],"blue":[9991,9990,1899]},
+        {"match":24,"red":[9988,6350,2522],"blue":[8051,7627,3663]},
+        {"match":25,"red":[2412,2930,1540],"blue":[4682,4513,9992]},
+        {"match":26,"red":[6390,2910,4911],"blue":[948,5941,7461]},
+        {"match":27,"red":[4512,9999,9993],"blue":[4173,2990,5920]},
+        {"match":28,"red":[9994,2557,2930],"blue":[360,1778,6350]},
+        {"match":29,"red":[4911,9992,9990],"blue":[8051,4682,9991]},
+        {"match":30,"red":[2910,948,2412],"blue":[9993,2522,6390]},
+        {"match":31,"red":[5920,360,9988],"blue":[9998,4173,9994]},
+        {"match":32,"red":[7461,5937,4513],"blue":[1540,9999,5941]},
+        {"match":33,"red":[1899,4512,3663],"blue":[2557,7627,2990]},
+        {"match":34,"red":[2412,9994,9988],"blue":[4682,9993,360]},
+        {"match":35,"red":[6390,5941,6350],"blue":[7461,4173,2522]},
+        {"match":36,"red":[8051,1899,2557],"blue":[9991,2910,9999]},
+        {"match":37,"red":[9998,948,9992],"blue":[5937,1540,4512]},
+        {"match":38,"red":[4513,3663,9990],"blue":[5920,1778,7627]},
+        {"match":39,"red":[2990,2930,2522],"blue":[4911,2557,9991]},
+        {"match":40,"red":[9992,2910,9988],"blue":[2412,5937,6390]},
+        {"match":41,"red":[4513,4173,9999],"blue":[9994,7461,1899]},
+        {"match":42,"red":[1778,9993,1540],"blue":[4911,8051,5920]},
+        {"match":43,"red":[5941,2990,4682],"blue":[6350,9990,7627]},
+        {"match":44,"red":[360,3663,948],"blue":[4512,2930,9998]},
+        {"match":45,"red":[2910,2522,1540],"blue":[1899,9988,4173]},
+        {"match":46,"red":[5937,5920,9991],"blue":[5941,8051,1778]},
+        {"match":47,"red":[9999,6350,2557],"blue":[4512,360,6390]},
+        {"match":48,"red":[2930,4682,948],"blue":[9992,3663,9994]},
+        {"match":49,"red":[7627,9998,4911],"blue":[9993,2990,7461]},
+        {"match":50,"red":[2412,4513,360],"blue":[9990,2557,2910]},
+        {"match":51,"red":[2930,9991,1778],"blue":[5941,2522,1899]},
+        {"match":52,"red":[9999,9988,9998],"blue":[948,9993,4911]},
+        {"match":53,"red":[2990,6390,9992],"blue":[4513,9994,1540]},
+        {"match":54,"red":[7461,6350,8051],"blue":[3663,5920,2412]},
+        {"match":55,"red":[5937,4682,7627],"blue":[4512,9990,4173]},
+        {"match":56,"red":[9988,4911,4513],"blue":[9992,1778,9999]},
+        {"match":57,"red":[9994,9991,9993],"blue":[1540,3663,2557]},
+        {"match":58,"red":[1899,7627,2412],"blue":[948,5920,6390]},
+        {"match":59,"red":[2910,4512,5941],"blue":[2522,8051,9998]},
+        {"match":60,"red":[2930,360,7461],"blue":[2990,9990,5937]},
+        {"match":61,"red":[4173,4682,1778],"blue":[6350,9991,3663]},
+        {"match":62,"red":[7627,4513,5941],"blue":[2557,9988,948]},
+        {"match":63,"red":[9992,9993,1899],"blue":[7461,9999,2412]},
+        {"match":64,"red":[4173,6390,8051],"blue":[9990,9998,2990]},
+        {"match":65,"red":[4682,1540,5920],"blue":[2930,2910,6350]},
+        {"match":66,"red":[2522,4911,4512],"blue":[360,9994,5937]},
+        {"match":"P1","red":[2930,2522,2910],"blue":[7627,5920,1899]},
+        {"match":"P2","red":[3663,9994,1540],"blue":[2990,4682,5941]},
+        {"match":"P3","red":[4512,9990,1778],"blue":[7461,9991,948]},
+        {"match":"P4","red":[2557,360,4513],"blue":[2412,9999,4911]},
+        {"match":"P5","red":[1899,5920,7627],"blue":[2990,4682,5941]},
+        {"match":"P6","red":[7461,948,9991],"blue":[4513,360,2557]},
+        {"match":"P7","red":[2930,2522,2910],"blue":[1540,9994,3663]},
+        {"match":"P8","red":[4512,9990,1778],"blue":[2412,9999,4911]},
+        {"match":"P9","red":[3663,9993,1540],"blue":[7461,948,9991]},
+        {"match":"P10","red":[4911,9999,2412],"blue":[2990,4682,5941]},
+        {"match":"P11","red":[2930,2522,2910],"blue":[1778,9990,4512]},
+        {"match":"P12","red":[4911,9999,2412],"blue":[1540,9994,3663]},
+        {"match":"P13","red":[4512,9990,1778],"blue":[2412,9999,4911]},
+        {"match":"F1","red":[2930,2522,2910],"blue":[2412,9999,4911]},
+        {"match":"F2","red":[2930,2522,2910],"blue":[2412,9999,4911]},
+    ]
+
+    var teams = [] // sorted list of participating teams built from matches
+
+    function compareNumbers(a, b) { // for numeric sorting
+        return a - b;
+    }
+
+    for (element of matches) {
+        redTeams = element['red']
+        found = false
+        for (team of redTeams) {
+            for (var i = 0; i < teams.length; i++) {
+                if (teams[i] === team) {
+                    found = true
+                    break
+                }
+            }
+            if (!found) {
+                teams.push(team)
+            }
+        }
+    }
+    teams.sort( compareNumbers)
+    
+    //some Javascript code here to respond to buttons
+    //var datetime =2000-01-01 01:00:00 UTC;
+
+    function formatDateTime () {
+        now = new Date()
+        return now.getFullYear() +"/"+
+                ("0" + (now.getMonth()+1)).slice(-2) +"/"+
+                ("0" + now.getDate()).slice(-2) +" "+
+                ("0" + now.getHours()).slice(-2) +":"+
+                ("0" + now.getMinutes()).slice(-2) +":"+
+                ("0" + now.getSeconds()).slice(-2) +"."+
+                ("0" + now.getMilliseconds()).slice(-3)
+    }
+
+
+    modeNames = { "pre":"Pre-Match",
+                  "auto":"Autonomous",
+                  "teleop":"TeleOp",
+                  "post":"post-Match"}
+    //intent:  enable( "pre" )
+    function enable( group) {
+        for (member of document.getElementsByClassName (group)) {
+            member.disabled = false
+        }
+        for (member of document.getElementsByClassName (group+"SVG")) {
+            member.style.visibility="visible"
+        }
+        document.getElementById( "mode").innerHTML = modeNames[ group]
+    }
+
+
+    function disable( group) {
+        for (member of document.getElementsByClassName (group)) {
+            member.disabled = true
+        }
+        for (member of document.getElementsByClassName (group+"SVG")) {
+            member.style.visibility="hidden"
+        }
+    }
+
+
+    function startClock () {
+        console.log("start clock")
+        period = AUTONOMOUS
+        timer = autoTime
+        timeProcess = setInterval( changeTimer, 100)
+        disable( "pre")
+        enable( "auto")
+        logPreamble()
+    }
+
+
+    function changeTimer() { //called every 100ms
+        timer = timer - 0.1
+        if (timer < 0.01 && period == AUTONOMOUS) {
+            period = TELEOP
+            timer = teleOpTime
+            disable( "auto")
+            enable( "teleop")
+        } else if (timer < 0.01 && period == TELEOP) {
+            period = POST
+            timer = 0
+            clearInterval( timeProcess)
+            disable( "teleop")
+            enable( "post")
+            clockStoppedAt = formatDateTime()
+        }
+        document.getElementById("clock").value = (Math.round(timer*10)/10).toFixed(1)
+    }
+
+
+    function reset() {
+            logEvent( "Clock stopped at " + formatDateTime())
+            period = PRE
+            timer = 0
+            document.getElementById("clock").value = (Math.round(timer*10)/10).toFixed(1)
+            clearInterval( timeProcess)
+            disable( "auto")
+            disable( "teleop")
+            enable( "pre")
+    }
+    
+    LOGIT_JSON = true
+
+    /*
+    logit works mostly with descrete events with names with spaces.  This works as long as the name is always in a string.  Some events have more data like: match: match: identifier red: [list of red teams] blue: [list of blue teams] scouting: postion: "red|blue 1|2|3" clockStarted: dateTime clockStopped: dateTime
+    use an optional parameter for the extra data (prefomatted)
+    
+    the whole JSON string has three part: the preamble which provides some summary
+    information about the match, the events which is a list of timestamped events
+    that occurred during the match, and the postamble which is infomation about the
+    conclusion of the match. Some events may be entered after the end of the match
+    to supply referee judgements and other comments.
+    preamble:
+
+
+    */
+    // comment out one of the following two lines to suppress newlines
+    //NL = "\n"
+    NL = ''
+    firstEvent = true
+
+    function logPreamble() {
+        matchNumber = document.getElementById("match").value
+        for (i=0; i<matches.length; i++) {
+            if (matches[i]['match'] == matchNumber) {
+                matchData = matches [i] // first match is 1
+                break
+            }
+        }
+        redAlliance = matchData ['red']
+        blueAlliance = matchData ['blue']
+        team = document.getElementById("team").value
+        if (LOGIT_JSON) {
+            jsonPreamble = '{' + NL +
+            '    "match":"' + matchNumber +'",' + NL +
+            '    "redAlliance":[' + redAlliance +'],' + NL +
+            '    "blueAlliance":[' + blueAlliance +'],' + NL +
+            '    "scoutingPosition":"' + document.getElementById( "scout").value +'",' + NL +
+            '    "team":' + document.getElementById( "team").value +',' + NL +
+            '    "scoutName":"' + document.getElementById( "scoutId").value +'",' + NL +
+            '    "clockStarted":"' + formatDateTime() +'",' + NL +
+            '    "events":['+ NL  //open list of events
+            console.log (jsonPreamble)
+            document.getElementById("Comment").value = jsonPreamble
+        } else {
+            logEvent( "Match: " + matchNumber)
+            logEvent( "Red Alliance: " + redAlliance)
+            logEvent( "Blue Alliance: " + blueAlliance)
+            logEvent( "Scouting: " + document.getElementById( "scout").value)
+            logEvent( "Team: " + document.getElementById( "team").value)
+            logEvent( "Scout: " + document.getElementById( "scoutId").value)
+            logEvent( "Clock started at " + formatDateTime())
+        }
+        firstEvent = true
+    }
+
+
+    function logPostamble() {
+        if (LOGIT_JSON) {
+            jsonPostamble =  '],' + NL +// close list of events
+            '    "clockStopped":"' + clockStoppedAt + '",' + NL +
+            '    "matchScore": {' + NL +
+            '        "redAlliance":' +  document.getElementById("redFinal").value +',' + NL +
+            '        "blueAlliance":' + document.getElementById("blueFinal").value + NL +
+            '    },' + NL +
+            '    "rankingPoints": {' + NL +
+            '        "redAlliance":' +  document.getElementById("redRankingPoints").value + "," + NL +
+            '        "blueAlliance":' + document.getElementById("blueRankingPoints").value + NL +
+            '    }' + NL +
+            '}'+  NL
+            console.log (jsonPostamble)
+            document.getElementById("Comment").value += jsonPostamble
+            commentElement.scrollTop = commentElement.scrollHeight
+        } else {
+            logEvent( "Red Score:" + document.getElementById("redFinal").value)
+            logEvent( "Blue Score:" + document.getElementById("blueFinal").value)
+            logEvent( "Red Ranking Points:" + document.getElementById("redRankingPoints").value)
+            logEvent( "Blue Ranking Points:" + document.getElementById("blueRankingPoints").value)
+        }
+    }
+
+
+    function logEvent(message) {
+        timePeriod = periods[ period]
+        timeStamp = (Math.round(timer*10)/10).toFixed(1)
+        commentElement = document.getElementById("Comment")
+        if (LOGIT_JSON) {
+            if (firstEvent) {
+                newComment = ''
+            } else {
+                newComment = ',' + NL
+            }
+            firstEvent=false
+            newComment += '{ "period":"'+ timePeriod + '", ' +
+                            '"time":' + timeStamp + ', ' +
+                            '"event":"' + message + '"}'
+            console.log (newComment)
+        } else {
+            newComment = NL + timePeriod +" "+ timeStamp +" "+ message
+            console.log( "logEvent: " +  timePeriod +" "+ timeStamp +" "+ message)
+        }
+        commentElement.value += newComment
+        commentElement.scrollTop = commentElement.scrollHeight
+    }
+
+
+    function nextRedRank() {
+        redRankingPoints += 1
+        document.getElementById("redRankingPoints").value = redRankingPoints
+    }
+
+
+    function prevRedRank() {
+        redRankingPoints -= 1
+        if (redRankingPoints < 0 ) {
+            redRankingPoints = 0
+        }
+        document.getElementById("redRankingPoints").value = redRankingPoints
+    }
+
+
+    function nextBlueRank() {
+        blueRankingPoints += 1
+        document.getElementById("blueRankingPoints").value = blueRankingPoints
+    }
+
+
+    function prevBlueRank() {
+        blueRankingPoints -= 1
+        if (blueRankingPoints <0 ) {
+            blueRankingPoints = 0
+        }
+        document.getElementById("blueRankingPoints").value = blueRankingPoints
+    }
+
+
+    function nextMatch() {
+        matchIndex += 1
+        updateMatch()
+    }
+
+
+    function prevMatch() {
+        matchIndex -= 1
+        updateMatch()
+    }
+
+
+    function changeMatch() {
+        matchIndex = 0
+        proposedMatch= Number( document.getElementById("match").value)
+        for (i = 0; i < matches.length; i++) {
+            if (matches[i]['match'] == proposedMatch) {
+                matchIndex = i
+                break
+            }
+        }
+        updateMatch()
+    }
+
+
+    function updateMatch() {
+        if ( Number.isInteger( matchIndex)) {
+            if (matchIndex < 0 || matchIndex >= matches.length) {
+                matchIndex = 0
+            }
+        } else {
+            matchIndex = 0
+        }
+        if ( matches[ matchIndex].constructor == Object ) {
+            matchData = matches[ matchIndex]
+            document.getElementById("match").value = matchData["match"]
+        } else {
+            matchData = []
+            document.getElementById("match").value = ""
+        }
+        updateTeam()
+    }
+
+
+    function updateTeam() { //called when match or scout is changed
+        matchData = matches[ matchIndex]
+        scoutMode = document.getElementById("scout").value
+        if (scoutMode == 'red 1') {
+            team = matchData['red'][0]
+        } else if (scoutMode == 'red 2') {
+            team = matchData['red'][1]
+        } else if (scoutMode == 'red 3') {
+            team = matchData['red'][2]
+        } else if (scoutMode == 'blue 1') {
+            team = matchData['blue'][0]
+        } else if (scoutMode == 'blue 2') {
+            team = matchData['blue'][1]
+        } else if (scoutMode == 'blue 3') {
+            team = matchData['blue'][2]
+        }
+        document.getElementById("team").value = team
+    }
+   
+
+    function initializeButtons() {
+        // disable all but pre
+        disable( "auto")
+        disable( "teleop")
+        disable( "post")
+        enable ( "pre")
+        timer =  0
+        document.getElementById("clock").value = (Math.round(timer*10)/10).toFixed(1)
+        matchIndex = 0
+        updateMatch()
+        redRankingPoints = 0
+        document.getElementById("redRankingPoints").value = redRankingPoints
+        blueRankingPoints = 0
+        document.getElementById("blueRankingPoints").value = blueRankingPoints
+        
+        document.getElementById( "enterCommunity1").onclick = function () {
+            logEvent( "Enter Community 1")
+        }
+        document.getElementById( "enterCommunity2").onclick = function ()  {
+            logEvent( "Enter Community 2")
+        }
+        document.getElementById( "enterCommunity3").onclick = function ()  {
+            logEvent( "Enter Community 3")
+        }
+        document.getElementById( "leftCommunity").onclick = function ()  {
+            logEvent( "Left Community")
+        }
+        document.getElementById( "scoreCubeHigh").onclick = function ()  {
+            logEvent( "Score Cube High")
+        }
+        document.getElementById( "scoreConeHigh").onclick = function ()  {
+            logEvent( "Score Cone High")
+        }
+        document.getElementById( "scoreCubeMed").onclick = function ()  {
+            logEvent( "Score Cube Medium")
+        }
+        document.getElementById( "scoreConeMed").onclick = function ()  {
+            logEvent( "Score Cone Medium")
+        }
+        document.getElementById( "scoreCubeLow").onclick = function ()  {
+            logEvent( "Score Cube Low")
+        }
+        document.getElementById( "scoreConeLow").onclick = function ()  {
+            logEvent( "Score Cone Low")
+        }
+        document.getElementById( "enterLoadingArea").onclick = function ()  {
+            logEvent( "Enter Loading Area")
+        }
+        document.getElementById( "leftLoadingArea").onclick = function ()  {
+            logEvent( "Left Loading Area")
+        }
+        document.getElementById( "humanBobble").onclick = function ()  {
+            logEvent( "Human Bobble")
+        }
+        document.getElementById( "pieceLoaded").onclick = function ()  {
+            logEvent( "Piece Loaded")
+        }
+        document.getElementById( "pieceDropped").onclick = function ()  {
+            logEvent( "Piece Dropped")
+        }
+        document.getElementById( "floorPickup").onclick = function ()  {
+            logEvent( "Floor Pickup")
+        }
+        document.getElementById( "robotMoved").onclick = function ()  {
+            logEvent( "Robot Moved")
+        }
+        document.getElementById( "defended").onclick = function () {
+            logEvent( "Defended")
+        }
+        document.getElementById( "defending").onclick = function () {
+            logEvent( "Defending")
+        }
+        document.getElementById( "congestion").onclick = function () {
+            logEvent( "Congestion")
+        }
+        document.getElementById( "docked").onclick = function () {
+            logEvent( "Docked")
+        }
+        document.getElementById( "undocked").onclick = function () {
+            logEvent( "Undocked")
+        }
+        document.getElementById( "engaged").onclick = function () {
+            logEvent( "Engaged")
+        }
+        document.getElementById( "disengaged").onclick = function () {
+            logEvent( "Disengaged")
+        }
+        document.getElementById( "problem").onchange = function () {
+            sel = document.getElementById("problem")
+            logEvent( sel.options[sel.selectedIndex].text)
+            sel.value = "default"
+        }
+        document.getElementById( "prevMatch").onclick = prevMatch
+        document.getElementById( "nextMatch").onclick = nextMatch
+        document.getElementById( "prevRedRank").onclick = prevRedRank
+        document.getElementById( "nextRedRank").onclick = nextRedRank
+        document.getElementById( "prevBlueRank").onclick = prevBlueRank
+        document.getElementById( "nextBlueRank").onclick = nextBlueRank
+        document.getElementById( "match").onchange = changeMatch
+        document.getElementById( "scout").onchange = updateTeam
+        document.getElementById( "start").onclick = startClock
+        document.getElementById( "reset").onclick = reset
+        document.getElementById( "save").onclick = save
+    }
+
+
+    function save(e) {
+        logPostamble()
+        e.preventDefault();
+        blob = new Blob ([document.getElementById("Comment").value],
+                         {type: "text/plain;charset=" + document.characterSet})
+        saveAs( blob, "date-match-taker.txt")
+            period = PRE
+            timer = 0
+            document.getElementById("clock").value = (Math.round(timer*10)/10).toFixed(1)
+            disable( "post")
+            enable( "pre")
+            return false;
+    }
+    
+
+    console.log("at end of scripts")
+
+   </script>
+</header>
+<body onload="initializeButtons();">
+    <!-- place the buttons and fields here -->
+<div id="matchDiv">
+    <label for="scoutId">Scout name:</label>
+    <textarea id="scoutId" maxlength="25" cols="25" rows="1" class="pre"></textarea>
+    <br>
+    <label for="match">Match:</label>
+    <button id="prevMatch" class="pre" type="button">
+        <svg height="16" width="10" class="preSVG">
+            <polygon points="8,0 8,16 0,8" style="fill:green;stroke:black;stroke-width:1">
+        </svg>
+    </button>
+    <textarea id="match" maxlength="3" cols="3" rows="1" class="pre"></textarea>
+    <button id="nextMatch" class="pre" type="button">
+        <svg height="16" width="10" class="preSVG">
+            <!--<polygon points="0,0 0,20 10,10" style="fill:green;stroke:black;stroke-width:1"</polygon>-->
+            <polygon points="0,0 0,16 8,8" style="fill:green;stroke:black;stroke-width:1">
+        </svg>
+    </button>
+    <label for="scout">Scout:</label>
+    <select name="scout" id="scout" class="pre"></textarea>
+        <option value="red 1" selected="selected">Red 1</option>
+        <option value="red 2">Red 2</option>
+        <option value="red 3">Red 3</option>
+        <option value="blue 1">Blue 1</option>
+        <option value="blue 2">Blue 2</option>
+        <option value="blue 3">Blue 3</option>
+    </select>
+    <label for="team">Team:</label>
+    <textarea id="team" maxlength="5" cols="5" rows="1" class="pre"></textarea>
+</div>
+<div id="buttons">
+    <div id="buttonsLeft">
+        <button id="robotMoved"  type="button" class="auto teleop">Robot Moved</button>
+        <br>
+        <button id="floorPickup"  type="button" class="auto teleop">Floor Pickup</button>
+        <br>
+        <button id="pieceDropped" type="button" class="auto teleop">Piece Dropped</button>
+        <br>
+        <button id="humanBobble" type="button" class="teleop">Human Bobble</button>
+        <br>
+        <button id="defended"  type="button" class="teleop">Defended</button>
+        <br>
+        <button id="defending"  type="button" class="teleop">Defending</button>
+        <br>
+        <button id="congestion"  type="button" class="teleop">Congestion</button>
+        <br>
+        <button id="docked" type="button" class="auto teleop">Docked</button>
+        <br>
+        <button id="undocked" type="button" class="auto teleop">Undocked</button>
+        <br>
+        <button id="engaged" type="button" class="auto teleop">Engaged</button>
+        <br>
+        <button id="disengaged" type="button" class="auto teleop">Disengaged</button>
+        <br>
+        <button id="inoperative"  type="button" class="auto teleop">Inoperative</button>
+        <br>
+        <select name="problem" id="problem" class="auto teleop post">
+            <option value="default">Problem</option>
+            <option value="robotNotMoving">robot not moving</option> 
+            <option value="robotPickupMalfunction">robot pickup malfunction</option> 
+            <option value="robotArmMalfunction">robot arm malfunction</option> 
+            <option value="robotElevatorMalfunction">robot elevator malfunction</option> 
+            <option value="robotOtherMalfunction">robot other malfunction</option> 
+            <option value="robotBumperLoose">robot bumper loose</option> 
+            <option value="teamNoShow">team no show</option> 
+            <option value="teamForfeit">team forfeit</option>
+            <option value="lostCommunication">lost communication</option> 
+            <option value="lostPower">lost power</option> 
+            <option value="tippedOer">tipped over</option> 
+            <option value="foul">foul</option> 
+            <option value="disabledByReferee">disabled by referee</option>
+            <option value="yellowCard">yellow card</option>
+            <option value="techFoul">tech foul</option> 
+            <option value="disqualified">disqualified</option> 
+            <option value="redCard">red card</option>
+        </select>
+        <!--
+            this should really use a simpler list or maybe built from js
+            <li>Robot Problem</li>
+            <li>robot not moving</li> 
+            <li>robot pickup malfunction</li> 
+            <li>robot arm malfunction</li> 
+            <li>robot elevator malfunction</li> 
+            <li>robot other malfunction</li> 
+            <li>robot bumper loose</li> 
+            <li>team no show</li> 
+            <li>team forfeit</li>
+            <li>lost communication</li> 
+            <li>lost power</li> 
+            <li>tipped over</li>
+            <li>robot fouled</li> 
+            <li>disqualified</li> 
+            <li>disabled by referee</li>
+            <li>yellow card</li>
+            <li>red card</li>
+            <li>deliberately long line description of no value or distinction</li>
+        -->
+    </div>
+    <div id="buttonsRight">
+        <button id="enterCommunity1" type="button" class="teleop">Enter Community 1</button>
+        <br>
+        <button id="enterCommunity2" type="button" class="teleop">Enter Community 2</button>
+        <br>
+        <button id="enterCommunity3" type="button" class="teleop">Enter Community 3</button>
+        <br>
+        Scored
+        <br>
+        High<button id="scoreCubeHigh" type="button" class="auto teleop">
+            <svg height="20" width="20" class="teleopSVG autoSVG">
+                <polygon points="0,0 0,20 20,20 20,0" class="auto teleop" style="fill:blue;stroke:black;stroke-width:1">
+            </svg>
+        </button>
+        <button id="scoreConeHigh" type="button" class="auto teleop">
+            <svg height="20" width="20" class="teleopSVG autoSVG">
+                <polygon points="10,0 20,20 0,20" style="fill:yellow;stroke:black;stroke-width:1">
+            </svg>
+        </button>
+        <br>
+        Med<button id="scoreCubeMed" type="button" class="auto teleop">
+            <svg height="20" width="20" class="teleopSVG autoSVG">
+                <polygon points="0,0 0,20 20,20 20,0" style="fill:blue;stroke:black;stroke-width:1">
+            </svg>
+        </button>
+        <button id="scoreConeMed" type="button" class="auto teleop">
+            <svg height="20" width="20" class="teleopSVG autoSVG">
+                <polygon points="10,0 20,20 0,20" style="fill:yellow;stroke:black;stroke-width:1">
+            </svg>
+        </button>
+        <br>
+        Low<button id="scoreCubeLow" type="button" class="auto teleop">
+            <svg height="20" width="20" class="teleopSVG autoSVG">
+                <polygon points="0,0 0,20 20,20 20,0" style="fill:blue;stroke:black;stroke-width:1">
+            </svg>
+        </button>
+        <button id="scoreConeLow" type="button" class="auto teleop">
+            <svg height="20" width="20" class="teleopSVG autoSVG">
+                <polygon points="10,0 20,20 0,20" style="fill:yellow;stroke:black;stroke-width:1">
+            </svg>
+        </button>
+        <br>
+        <button id="leftCommunity" type="button" class="auto teleop">Left Community</button>
+        <br>
+        <button id="enterLoadingArea" type="button" class="teleop">Enter Loading Area</button>
+        <br>
+        <button id="pieceLoaded"  type="button" class="auto teleop">Piece Loaded</button>
+        <br>
+        <button id="leftLoadingArea" type="button" class="teleop">Left Loading Area</button>
+        <br>
+    </div>
+</div>
+<div id="commentDiv">
+    Comment<br>
+    <textarea id="Comment" rows="6" cols="40"</textarea></textarea>
+</div>
+<div id="startDiv">
+    <button id="reset"  type="button" class="auto teleop">Reset</button>
+    <button id="start"  type="button" class="pre">Start</button>
+</div>
+<div id="timing">
+    <div id="timingLeft">
+        <div id="mode">not set to anything</div>
+        </div>
+    <div id="timingCenter">
+        <textarea id="clock" maxlength="3" cols="3" rows="1"></textarea>
+    </div>
+    <div id="timingRight">
+        Time
+        <button id="save"  type="button" class="post">save</button>
+        <br>
+        Remaining
+
+    </div>
+</div>
+<div id="score">
+    <div id="scoreLeft">
+        Final Score
+        <br>
+        <label for="redFinal">Red:</label>
+        <textarea id="redFinal" maxlength="3" cols="3" rows="1" class="post"></textarea>
+        <label for="blueFinal">Blue:</label>
+        <textarea id="blueFinal" maxlength="3" cols="3" rows="1" class="post"></textarea>
+    </div>
+    <div id="scoreRight">
+        Ranking Points
+        <br>
+        <label for="redRankingPoints">Red:</label>
+        <button id="prevRedRank" type="button" class="post">
+            <svg height="16" width="10">
+                <polygon points="8,0 8,16 0,8" class="postSVG" style="fill:green;stroke:black;stroke-width:1">
+            </svg>
+        </button>
+        <textarea id="redRankingPoints" maxlength="1" cols="1" rows="1"></textarea>
+        <button id="nextRedRank" type="button" class="post">
+            <svg height="16" width="10">
+                <!--<polygon points="0,0 0,20 10,10" style="fill:green;stroke:black;stroke-width:1"</polygon>-->
+                <polygon points="0,0 0,16 8,8" class="postSVG" style="fill:green;stroke:black;stroke-width:1">
+            </svg>
+        </button>
+        <label for="blueRankingPoints">Blue:</label>
+        <button id="prevBlueRank" type="button" class="post">
+            <svg height="16" width="10">
+                <polygon points="8,0 8,16 0,8" class="postSVG" style="fill:green;stroke:black;stroke-width:1">
+            </svg>
+        </button>
+        <textarea id="blueRankingPoints" maxlength="1" cols="1" rows="1"></textarea>
+        <button id="nextBlueRank" type="button" class="post">
+            <svg height="16" width="10">
+                <!--<polygon points="0,0 0,20 10,10" style="fill:green;stroke:black;stroke-width:1"</polygon>-->
+                <polygon points="0,0 0,16 8,8" class="postSVG" style="fill:green;stroke:black;stroke-width:1">
+            </svg>
+        </button>
+    </div>
+</div>
+</body>
+</html>
